@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>AI Metrics Dashboard · Motionova Labs</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#060608;--s1:#0d0d14;--s2:#12121c;--s3:#181826;
+  --a:#7c5cfc;--a2:#a78bfa;--a3:#c4b5fd;
+  --tx:#f0f0f8;--t2:#9898b8;--t3:#55556a;
+  --bd:rgba(255,255,255,.07);--bd2:rgba(255,255,255,.13);
+  --green:#10b981;--gold:#f59e0b;--red:#f87171;--blue:#60a5fa;
+  --r:12px;--r2:18px;
+}
+body{background:var(--bg);color:var(--tx);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--a);border-radius:2px}
+
+/* HEADER */
+header{border-bottom:1px solid var(--bd);padding:1rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:rgba(6,6,8,.92);backdrop-filter:blur(20px);z-index:10}
+.hdr-left{display:flex;align-items:center;gap:.75rem}
+.hdr-logo{font-size:.75rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--a2)}
+.hdr-div{width:1px;height:18px;background:var(--bd2)}
+.hdr-sub{font-size:.8rem;color:var(--t3)}
+.hdr-right{display:flex;align-items:center;gap:.75rem}
+.hdr-badge{font-size:.65rem;background:rgba(124,92,252,.12);border:1px solid rgba(124,92,252,.25);color:var(--a2);padding:.22rem .7rem;border-radius:999px;letter-spacing:.06em;text-transform:uppercase}
+.dataset-select{background:var(--s2);border:1px solid var(--bd);color:var(--t2);padding:.38rem .85rem;border-radius:8px;font-size:.75rem;outline:none;cursor:pointer}
+.dataset-select:focus{border-color:rgba(124,92,252,.4)}
+
+/* MAIN */
+main{padding:2rem;display:flex;flex-direction:column;gap:1.5rem;max-width:1400px;margin:0 auto}
+
+/* METRIC CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem}
+.kpi{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);padding:1.4rem 1.6rem;position:relative;overflow:hidden;transition:border .25s}
+.kpi:hover{border-color:var(--bd2)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;border-radius:2px 2px 0 0}
+.kpi.k-purple::after{background:linear-gradient(90deg,var(--a),var(--a2))}
+.kpi.k-green::after{background:linear-gradient(90deg,#059669,var(--green))}
+.kpi.k-gold::after{background:linear-gradient(90deg,#d97706,var(--gold))}
+.kpi.k-blue::after{background:linear-gradient(90deg,#2563eb,var(--blue))}
+.kpi-label{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--t3);margin-bottom:.4rem}
+.kpi-value{font-size:2rem;font-weight:900;letter-spacing:-.04em;line-height:1.1;margin-bottom:.35rem}
+.kpi.k-purple .kpi-value{color:var(--a2)}
+.kpi.k-green .kpi-value{color:var(--green)}
+.kpi.k-gold .kpi-value{color:var(--gold)}
+.kpi.k-blue .kpi-value{color:var(--blue)}
+.kpi-delta{display:inline-flex;align-items:center;gap:.3rem;font-size:.74rem;font-weight:600;padding:.18rem .55rem;border-radius:999px}
+.delta-up{background:rgba(16,185,129,.1);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.delta-down{background:rgba(248,113,113,.1);color:var(--red);border:1px solid rgba(248,113,113,.2)}
+.delta-flat{background:rgba(245,158,11,.1);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
+.kpi-sub{font-size:.72rem;color:var(--t3);margin-top:.3rem}
+
+/* CHART GRID */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.chart-grid-3{display:grid;grid-template-columns:2fr 1fr;gap:1.2rem}
+.chart-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);padding:1.4rem;transition:border .25s}
+.chart-card:hover{border-color:var(--bd2)}
+.chart-head{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.2rem;gap:1rem}
+.chart-title{font-size:.82rem;font-weight:700;color:var(--tx);letter-spacing:-.01em}
+.chart-sub{font-size:.72rem;color:var(--t3);margin-top:.15rem}
+.chart-legend{display:flex;gap:.75rem;flex-wrap:wrap}
+.leg-item{display:flex;align-items:center;gap:.35rem;font-size:.68rem;color:var(--t3)}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+.chart-wrap{position:relative}
+
+/* AI NARRATIVE */
+.narrative-card{background:var(--s2);border:1px solid var(--bd);border-radius:var(--r2);overflow:hidden}
+.narrative-head{padding:1.2rem 1.6rem;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap}
+.narrative-title-row{display:flex;align-items:center;gap:.65rem}
+.narrative-ico{width:28px;height:28px;background:rgba(124,92,252,.1);border:1px solid rgba(124,92,252,.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.85rem}
+.narrative-title{font-size:.8rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--t2)}
+.narrative-actions{display:flex;gap:.6rem}
+.n-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.42rem .95rem;border-radius:8px;font-size:.75rem;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid var(--bd2);background:transparent;color:var(--t2)}
+.n-btn:hover{color:var(--tx);background:rgba(255,255,255,.04)}
+.n-btn.primary{background:var(--a);color:#fff;border-color:transparent}
+.n-btn.primary:hover{background:var(--a2)}
+.n-btn:disabled{opacity:.45;cursor:not-allowed}
+.narrative-body{padding:1.6rem}
+
+/* NARRATIVE STATES */
+.n-empty{text-align:center;padding:2.5rem;color:var(--t3)}
+.n-empty-icon{font-size:2rem;margin-bottom:.75rem;opacity:.3}
+.n-empty p{font-size:.82rem;line-height:1.65}
+.n-loading{display:flex;align-items:center;gap:.85rem;padding:.5rem 0}
+.spinner{width:20px;height:20px;border:2px solid var(--bd2);border-top-color:var(--a);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.n-load-txt{font-size:.82rem;color:var(--t3);animation:fp 1.6s ease-in-out infinite}
+@keyframes fp{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* NARRATIVE CONTENT */
+.n-content{display:flex;flex-direction:column;gap:1.2rem}
+.n-summary{font-size:.92rem;color:var(--tx);line-height:1.75;font-weight:500;padding-bottom:1.2rem;border-bottom:1px solid var(--bd)}
+.n-sections{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
+.n-section{background:var(--s3);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem}
+.n-sec-label{font-size:.63rem;letter-spacing:.2em;text-transform:uppercase;margin-bottom:.6rem;font-weight:700}
+.n-sec-label.green{color:var(--green)}
+.n-sec-label.gold{color:var(--gold)}
+.n-sec-label.red{color:var(--red)}
+.n-sec-label.blue{color:var(--blue)}
+.n-sec-label.purple{color:var(--a2)}
+.n-item{display:flex;gap:.5rem;font-size:.8rem;color:var(--t2);margin-bottom:.45rem;line-height:1.55;align-items:flex-start}
+.n-item:last-child{margin-bottom:0}
+.n-item-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:.5rem}
+.dot-green{background:var(--green)}
+.dot-gold{background:var(--gold)}
+.dot-red{background:var(--red)}
+.dot-blue{background:var(--blue)}
+.dot-purple{background:var(--a2)}
+.n-recommendation{background:linear-gradient(135deg,rgba(124,92,252,.07),transparent);border:1px solid rgba(124,92,252,.2);border-radius:var(--r);padding:1.2rem}
+.n-rec-label{font-size:.63rem;letter-spacing:.2em;text-transform:uppercase;color:var(--a);margin-bottom:.4rem;font-weight:700}
+.n-rec-text{font-size:.85rem;color:var(--t2);line-height:1.7}
+
+.toast{position:fixed;bottom:2rem;right:2rem;background:var(--s3);border:1px solid var(--bd2);border-radius:10px;padding:.75rem 1.2rem;font-size:.8rem;color:var(--tx);opacity:0;transform:translateY(8px);transition:all .3s;pointer-events:none;z-index:100}
+.toast.show{opacity:1;transform:translateY(0)}
+
+@media(max-width:1100px){.chart-grid,.chart-grid-3{grid-template-columns:1fr}}
+@media(max-width:800px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.n-sections{grid-template-columns:1fr}}
+@media(max-width:500px){.kpi-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hdr-left">
+    <div class="hdr-logo">Motionova Labs</div>
+    <div class="hdr-div"></div>
+    <div class="hdr-sub">AI PM Toolkit</div>
+  </div>
+  <div class="hdr-right">
+    <select class="dataset-select" id="datasetSelect" onchange="switchDataset()">
+      <option value="marketplace">Ghost Kitchen Marketplace</option>
+      <option value="automotive">Automotive SaaS (CarRX)</option>
+      <option value="saas">B2B SaaS Platform</option>
+    </select>
+    <div class="hdr-badge">Metrics Dashboard v1.0</div>
+  </div>
+</header>
+
+<main>
+  <!-- KPI STRIP -->
+  <div class="kpi-grid" id="kpiGrid"></div>
+
+  <!-- CHARTS ROW 1 -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div><div class="chart-title" id="chart1Title">Revenue Growth</div><div class="chart-sub" id="chart1Sub">Monthly · Last 12 months</div></div>
+        <div class="chart-legend" id="chart1Legend"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart1" height="220"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div><div class="chart-title" id="chart2Title">User Retention</div><div class="chart-sub" id="chart2Sub">Monthly cohort retention %</div></div>
+        <div class="chart-legend" id="chart2Legend"></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart2" height="220"></canvas></div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW 2 -->
+  <div class="chart-grid-3">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div><div class="chart-title" id="chart3Title">Funnel Conversion</div><div class="chart-sub" id="chart3Sub">Step-by-step conversion rates</div></div>
+      </div>
+      <div class="chart-wrap"><canvas id="chart3" height="200"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div><div class="chart-title" id="chart4Title">Metric Breakdown</div><div class="chart-sub" id="chart4Sub">Current period distribution</div></div>
+      </div>
+      <div class="chart-wrap" style="display:flex;align-items:center;justify-content:center"><canvas id="chart4" height="200" width="200"></canvas></div>
+    </div>
+  </div>
+
+  <!-- AI NARRATIVE -->
+  <div class="narrative-card">
+    <div class="narrative-head">
+      <div class="narrative-title-row">
+        <div class="narrative-ico">✦</div>
+        <div class="narrative-title">AI Product Narrative</div>
+      </div>
+      <div class="narrative-actions">
+        <button class="n-btn" id="copyBtn" onclick="copyNarrative()" disabled>Copy</button>
+        <button class="n-btn primary" id="genBtn" onclick="generateNarrative()">✦ Generate Narrative</button>
+      </div>
+    </div>
+    <div class="narrative-body" id="narrativeBody">
+      <div class="n-empty">
+        <div class="n-empty-icon">✦</div>
+        <p>Hit <strong style="color:var(--a2)">Generate Narrative</strong> to get an AI-written product update — the kind a senior PM would present to leadership. Includes performance summary, wins, concerns, and a recommended next action.</p>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast">Copied ✓</div>
+
+<script>
+// ─── DATASETS ───────────────────────────────────────────────
+const DATASETS = {
+  marketplace: {
+    name: "Ghost Kitchen Marketplace",
+    context: "Multi-sided marketplace connecting ghost kitchen operators, restaurant brands, and consumers. Integrates with Uber Eats, DoorDash, and Grubhub APIs across 30+ physical locations.",
+    kpis: [
+      {label:"Gross Merchandise Value",value:"$4.2M",delta:"+34%",trend:"up",sub:"vs. prior period",color:"k-purple"},
+      {label:"Active Restaurant Partners",value:"312",delta:"+18%",trend:"up",sub:"across all locations",color:"k-green"},
+      {label:"Cart Abandonment Rate",value:"14.2%",delta:"-25%",trend:"up",sub:"down from 19.0%",color:"k-gold"},
+      {label:"Avg Order Value",value:"$38.40",delta:"+11%",trend:"up",sub:"per completed order",color:"k-blue"},
+    ],
+    chart1:{title:"GMV Growth",sub:"Monthly gross merchandise value ($K)",labels:["May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr"],
+      datasets:[
+        {label:"GMV ($K)",data:[210,238,255,271,290,318,345,362,381,395,408,420],color:"#7c5cfc"},
+        {label:"Target ($K)",data:[220,240,260,280,300,320,340,360,380,400,415,425],color:"rgba(255,255,255,.15)",dash:true}
+      ]},
+    chart2:{title:"Restaurant Partner Retention",sub:"Monthly retention by cohort",labels:["M1","M2","M3","M4","M5","M6","M7","M8"],
+      datasets:[
+        {label:"Q3 Cohort",data:[100,88,80,74,70,67,65,63],color:"#7c5cfc"},
+        {label:"Q4 Cohort",data:[100,91,85,80,76,73,71,null],color:"#10b981"},
+        {label:"Q1 Cohort",data:[100,93,88,84,null,null,null,null],color:"#f59e0b"}
+      ]},
+    chart3:{title:"Order Funnel",sub:"Conversion at each stage",labels:["App Open","Browse","Add to Cart","Checkout","Order Complete"],data:[100,72,54,41,38],color:"#7c5cfc"},
+    chart4:{title:"Revenue by Platform",sub:"Current period split",labels:["DoorDash","Uber Eats","Grubhub","Direct"],data:[38,31,21,10],colors:["#7c5cfc","#10b981","#f59e0b","#60a5fa"]},
+  },
+  automotive: {
+    name: "Automotive SaaS (CarRX)",
+    context: "Mobile-first SaaS platform for automotive dealerships, service centers, and consumers. Serves 50K+ active users across enterprise dealership groups and independent service centers.",
+    kpis: [
+      {label:"Active Users",value:"52.4K",delta:"+22%",trend:"up",sub:"MAU across all surfaces",color:"k-purple"},
+      {label:"Repeat Booking Rate",value:"64%",delta:"+30%",trend:"up",sub:"vs. 49% prior period",color:"k-green"},
+      {label:"Enterprise Partners",value:"147",delta:"+15",trend:"up",sub:"dealership locations",color:"k-gold"},
+      {label:"Avg NPS Score",value:"71",delta:"+8pts",trend:"up",sub:"enterprise partner NPS",color:"k-blue"},
+    ],
+    chart1:{title:"Monthly Active Users",sub:"MAU growth over 12 months",labels:["May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr"],
+      datasets:[
+        {label:"MAU",data:[31200,33800,36100,38400,40200,42600,44800,46200,48100,49700,51200,52400],color:"#7c5cfc"},
+        {label:"Target",data:[32000,35000,37000,39000,41000,43000,45000,47000,49000,51000,52000,53000],color:"rgba(255,255,255,.15)",dash:true}
+      ]},
+    chart2:{title:"User Retention by Segment",sub:"Monthly retention rates",labels:["M1","M2","M3","M4","M5","M6","M7","M8"],
+      datasets:[
+        {label:"Enterprise",data:[100,94,90,87,85,83,82,81],color:"#7c5cfc"},
+        {label:"SMB Dealers",data:[100,85,76,70,65,62,60,58],color:"#10b981"},
+        {label:"Consumers",data:[100,72,61,54,49,46,44,null],color:"#f59e0b"}
+      ]},
+    chart3:{title:"Booking Funnel",sub:"Conversion at each stage",labels:["App Open","Search Service","Select Time","Enter Details","Confirmed"],data:[100,68,52,45,41],color:"#10b981"},
+    chart4:{title:"Users by Segment",sub:"Current active user split",labels:["Enterprise","SMB Dealers","Consumers","Fleet"],data:[34,28,31,7],colors:["#7c5cfc","#10b981","#f59e0b","#60a5fa"]},
+  },
+  saas: {
+    name: "B2B SaaS Platform",
+    context: "Operations-heavy B2B SaaS platform serving mid-market companies. Product focuses on workflow automation and team collaboration, with primary value delivered in first 30 days.",
+    kpis: [
+      {label:"Annual Recurring Revenue",value:"$8.7M",delta:"+28%",trend:"up",sub:"vs. prior year",color:"k-purple"},
+      {label:"30-Day Activation Rate",value:"58%",delta:"+14pts",trend:"up",sub:"up from 44% prior quarter",color:"k-green"},
+      {label:"Monthly Churn Rate",value:"2.1%",delta:"-0.8pts",trend:"up",sub:"down from 2.9%",color:"k-gold"},
+      {label:"Expansion Revenue",value:"$1.2M",delta:"+41%",trend:"up",sub:"upsell & expansion ARR",color:"k-blue"},
+    ],
+    chart1:{title:"ARR Growth",sub:"Monthly ARR trajectory ($K)",labels:["May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar","Apr"],
+      datasets:[
+        {label:"ARR ($K)",data:[5800,6100,6400,6700,7000,7300,7600,7900,8100,8300,8500,8700],color:"#7c5cfc"},
+        {label:"Target ($K)",data:[5900,6200,6500,6800,7100,7400,7700,8000,8200,8400,8600,8800],color:"rgba(255,255,255,.15)",dash:true}
+      ]},
+    chart2:{title:"Cohort Retention",sub:"% of cohort still active by month",labels:["M1","M2","M3","M4","M5","M6","M7","M8"],
+      datasets:[
+        {label:"Q3 Cohort",data:[100,88,81,76,72,69,67,65],color:"#7c5cfc"},
+        {label:"Q4 Cohort",data:[100,90,84,79,75,72,70,null],color:"#10b981"},
+        {label:"Q1 Cohort",data:[100,92,87,83,null,null,null,null],color:"#f59e0b"}
+      ]},
+    chart3:{title:"Activation Funnel",sub:"New user activation steps",labels:["Signed Up","Invited Team","Created Workflow","First Output","Activated"],data:[100,74,58,49,58],color:"#a78bfa"},
+    chart4:{title:"Revenue by Plan",sub:"ARR distribution by tier",labels:["Starter","Growth","Pro","Enterprise"],data:[18,29,34,19],colors:["#7c5cfc","#10b981","#f59e0b","#60a5fa"]},
+  }
+};
+
+let charts = {};
+let currentDataset = 'marketplace';
+let narrativeData = null;
+
+// ─── CHART HELPERS ─────────────────────────────────────────
+const C = {
+  line(id, cfg) {
+    if(charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id).getContext('2d');
+    charts[id] = new Chart(ctx, {
+      type:'line',
+      data:{
+        labels:cfg.labels,
+        datasets:cfg.datasets.map(d=>({
+          label:d.label,
+          data:d.data,
+          borderColor:d.color,
+          backgroundColor:'transparent',
+          borderWidth:d.dash?1.5:2,
+          borderDash:d.dash?[4,4]:[],
+          pointRadius:3,
+          pointHoverRadius:5,
+          pointBackgroundColor:d.color,
+          tension:.35,
+          spanGaps:true
+        }))
+      },
+      options:{
+        responsive:true,maintainAspectRatio:true,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#12121c',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#f0f0f8',bodyColor:'#9898b8',padding:10}},
+        scales:{
+          x:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#55556a',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#55556a',font:{size:11}}}
+        }
+      }
+    });
+  },
+  bar(id, cfg) {
+    if(charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id).getContext('2d');
+    const grad = ctx.createLinearGradient(0,0,0,200);
+    grad.addColorStop(0, cfg.color);
+    grad.addColorStop(1, cfg.color+'44');
+    charts[id] = new Chart(ctx, {
+      type:'bar',
+      data:{
+        labels:cfg.labels,
+        datasets:[{data:cfg.data,backgroundColor:grad,borderRadius:6,borderSkipped:false}]
+      },
+      options:{
+        responsive:true,maintainAspectRatio:true,
+        plugins:{legend:{display:false},tooltip:{backgroundColor:'#12121c',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#f0f0f8',bodyColor:'#9898b8',padding:10,callbacks:{label:c=>`${c.raw}%`}}},
+        scales:{
+          x:{grid:{display:false},ticks:{color:'#55556a',font:{size:10}}},
+          y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#55556a',font:{size:11},callback:v=>v+'%'},max:110}
+        }
+      }
+    });
+  },
+  doughnut(id, cfg) {
+    if(charts[id]) charts[id].destroy();
+    const ctx = document.getElementById(id).getContext('2d');
+    charts[id] = new Chart(ctx, {
+      type:'doughnut',
+      data:{labels:cfg.labels,datasets:[{data:cfg.data,backgroundColor:cfg.colors,borderWidth:0,hoverBorderWidth:2,hoverBorderColor:'rgba(255,255,255,.2)'}]},
+      options:{
+        responsive:false,cutout:'68%',
+        plugins:{
+          legend:{position:'right',labels:{color:'#9898b8',font:{size:11},padding:12,boxWidth:10,boxHeight:10}},
+          tooltip:{backgroundColor:'#12121c',borderColor:'rgba(255,255,255,.1)',borderWidth:1,titleColor:'#f0f0f8',bodyColor:'#9898b8',padding:10,callbacks:{label:c=>`${c.label}: ${c.raw}%`}}
+        }
+      }
+    });
+  }
+};
+
+function buildLegend(id, datasets) {
+  const el = document.getElementById(id);
+  if(!el||!datasets) return;
+  el.innerHTML = datasets.map(d=>`
+    <div class="leg-item">
+      <div class="leg-dot" style="background:${d.color}"></div>${d.label}
+    </div>`).join('');
+}
+
+// ─── RENDER DATASET ────────────────────────────────────────
+function renderDataset(key) {
+  const ds = DATASETS[key];
+  if(!ds) return;
+
+  // KPIs
+  document.getElementById('kpiGrid').innerHTML = ds.kpis.map(k=>`
+    <div class="kpi ${k.color}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value">${k.value}</div>
+      <div class="kpi-delta ${k.trend==='up'?'delta-up':k.trend==='down'?'delta-down':'delta-flat'}">${k.delta}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+
+  // Chart 1 — Line
+  document.getElementById('chart1Title').textContent = ds.chart1.title;
+  document.getElementById('chart1Sub').textContent = ds.chart1.sub;
+  buildLegend('chart1Legend', ds.chart1.datasets);
+  C.line('chart1', ds.chart1);
+
+  // Chart 2 — Line (retention)
+  document.getElementById('chart2Title').textContent = ds.chart2.title;
+  document.getElementById('chart2Sub').textContent = ds.chart2.sub;
+  buildLegend('chart2Legend', ds.chart2.datasets);
+  C.line('chart2', ds.chart2);
+
+  // Chart 3 — Bar (funnel)
+  document.getElementById('chart3Title').textContent = ds.chart3.title;
+  document.getElementById('chart3Sub').textContent = ds.chart3.sub;
+  C.bar('chart3', ds.chart3);
+
+  // Chart 4 — Doughnut
+  document.getElementById('chart4Title').textContent = ds.chart4.title;
+  document.getElementById('chart4Sub').textContent = ds.chart4.sub;
+  C.doughnut('chart4', ds.chart4);
+
+  // Reset narrative
+  narrativeData = null;
+  document.getElementById('copyBtn').disabled = true;
+  document.getElementById('narrativeBody').innerHTML = `
+    <div class="n-empty">
+      <div class="n-empty-icon">✦</div>
+      <p>Hit <strong style="color:var(--a2)">Generate Narrative</strong> to get an AI-written product update for <strong style="color:var(--tx)">${ds.name}</strong>.</p>
+    </div>`;
+}
+
+function switchDataset() {
+  currentDataset = document.getElementById('datasetSelect').value;
+  renderDataset(currentDataset);
+}
+
+// ─── AI NARRATIVE ──────────────────────────────────────────
+const N_MSGS = ['Reading the metrics...','Identifying trends...','Spotting anomalies...','Drafting the narrative...','Finalizing recommendations...'];
+
+async function generateNarrative() {
+  const ds = DATASETS[currentDataset];
+  const btn = document.getElementById('genBtn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+
+  let mi = 0;
+  document.getElementById('narrativeBody').innerHTML = `
+    <div class="n-loading">
+      <div class="spinner"></div>
+      <div class="n-load-txt" id="nMsg">${N_MSGS[0]}</div>
+    </div>`;
+  const mt = setInterval(()=>{ mi=(mi+1)%N_MSGS.length; const e=document.getElementById('nMsg'); if(e) e.textContent=N_MSGS[mi]; },1600);
+
+  const kpiText = ds.kpis.map(k=>`${k.label}: ${k.value} (${k.delta})`).join(', ');
+  const funnelText = ds.chart3.labels.map((l,i)=>`${l}: ${ds.chart3.data[i]}%`).join(' → ');
+
+  const prompt = `You are a senior product manager writing a weekly product performance narrative for a leadership standup. Be direct, data-specific, and opinionated — write like a PM who owns the numbers, not a reporter describing them.
+
+Product: ${ds.name}
+Context: ${ds.context}
+
+Key Metrics This Period:
+${kpiText}
+
+Conversion Funnel: ${funnelText}
+
+Write a concise product narrative in JSON format only. No markdown, no preamble. Use this exact structure:
+
+{
+  "summary": "2-3 sentence executive summary. Lead with the most important story in the data. Be specific with numbers.",
+  "wins": ["Specific win with number", "Specific win with number", "Specific win with number"],
+  "concerns": ["Specific concern with context", "Specific concern with context"],
+  "funnelInsight": "1-2 sentences on the most important conversion pattern and what it means for the product",
+  "retentionInsight": "1-2 sentences on retention health and what it signals",
+  "recommendation": "One sharp, specific recommended action the PM should take this week — with clear rationale tied to the data"
+}`;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:1500,messages:[{role:"user",content:prompt}]})
+    });
+    const data = await res.json();
+    const raw = data.content.map(b=>b.text||'').join('');
+    const clean = raw.replace(/```json|```/g,'').trim();
+    narrativeData = JSON.parse(clean);
+    clearInterval(mt);
+    renderNarrative(narrativeData);
+    document.getElementById('copyBtn').disabled = false;
+  } catch(err) {
+    clearInterval(mt);
+    document.getElementById('narrativeBody').innerHTML = `<div class="n-empty"><p style="color:var(--red)">${err.message}</p></div>`;
+  } finally {
+    btn.disabled=false; btn.textContent='↻ Regenerate';
+  }
+}
+
+function renderNarrative(n) {
+  const wins = (n.wins||[]).map(w=>`<div class="n-item"><div class="n-item-dot dot-green"></div>${w}</div>`).join('');
+  const concerns = (n.concerns||[]).map(c=>`<div class="n-item"><div class="n-item-dot dot-gold"></div>${c}</div>`).join('');
+
+  document.getElementById('narrativeBody').innerHTML = `
+    <div class="n-content">
+      <div class="n-summary">${n.summary||''}</div>
+      <div class="n-sections">
+        <div class="n-section">
+          <div class="n-sec-label green">✓ Wins this period</div>
+          ${wins}
+        </div>
+        <div class="n-section">
+          <div class="n-sec-label gold">⚠ Watch items</div>
+          ${concerns}
+        </div>
+        <div class="n-section">
+          <div class="n-sec-label blue">↘ Funnel insight</div>
+          <div class="n-item"><div class="n-item-dot dot-blue"></div>${n.funnelInsight||''}</div>
+        </div>
+        <div class="n-section">
+          <div class="n-sec-label purple">⟳ Retention signal</div>
+          <div class="n-item"><div class="n-item-dot dot-purple"></div>${n.retentionInsight||''}</div>
+        </div>
+      </div>
+      <div class="n-recommendation">
+        <div class="n-rec-label">✦ Recommended action this week</div>
+        <div class="n-rec-text">${n.recommendation||''}</div>
+      </div>
+    </div>`;
+}
+
+function copyNarrative() {
+  if(!narrativeData) return;
+  const n = narrativeData;
+  const ds = DATASETS[currentDataset];
+  const txt = [
+    `# Product Narrative — ${ds.name}`,
+    `\n## Summary\n${n.summary}`,
+    `\n## Wins\n${(n.wins||[]).map(w=>'- '+w).join('\n')}`,
+    `\n## Watch Items\n${(n.concerns||[]).map(c=>'- '+c).join('\n')}`,
+    `\n## Funnel Insight\n${n.funnelInsight}`,
+    `\n## Retention Signal\n${n.retentionInsight}`,
+    `\n## Recommended Action\n${n.recommendation}`
+  ].join('\n');
+  navigator.clipboard.writeText(txt).then(()=>{
+    const t=document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(()=>t.classList.remove('show'),2500);
+  });
+}
+
+// ─── INIT ──────────────────────────────────────────────────
+renderDataset('marketplace');
+</script>
+</body>
+</html>
